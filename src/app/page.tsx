@@ -138,18 +138,18 @@ export default function HomePage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-4 sm:p-8 md:p-12 lg:p-24 bg-gradient-to-br from-slate-950 to-slate-800 text-slate-50">
+    <main className="flex min-h-screen flex-col items-center p-6 sm:p-10 md:p-14 lg:p-28 bg-gradient-to-br from-slate-950 to-slate-800 text-slate-50">
       <Card className="w-full max-w-2xl bg-slate-900/80 border-slate-700 shadow-2xl backdrop-blur-sm">
-        <CardHeader className="border-b border-slate-700 pb-4">
-          <CardTitle className="text-4xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-blue-600">
-            My Advanced To-Do List
+                <CardHeader className="border-b border-slate-700 pb-6">
+          <CardTitle className="text-4xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-blue-600 mb-2">
+            2do List 
           </CardTitle>
-          <CardDescription className="text-center text-slate-400 pt-1">
+          <CardDescription className="text-center text-slate-400">
             Organize your tasks with due dates and priorities.
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-6">
-          <div className="flex w-full items-center space-x-2 mb-8">
+        <CardContent className="p-8">
+          <div className="flex w-full items-center space-x-3 mb-10">
             <Input
               type="text"
               placeholder="Add a new task..."
@@ -160,27 +160,27 @@ export default function HomePage() {
                   handleAddTask();
                 }
               }}
-              className="flex-1 bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500 focus:ring-sky-500 focus:border-sky-500 rounded-md h-11 text-base"
+              className="flex-1 bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500 focus:ring-sky-500 focus:border-sky-500 rounded-md h-12 text-base px-4"
             />
             <Button
               onClick={handleAddTask}
-              className="bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-md h-11 px-6 text-base"
+              className="bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-md h-12 px-8 text-base"
             >
               Add Task
             </Button>
           </div>
 
           {tasks.length === 0 && (
-            <p className="text-center text-slate-400 py-8 text-lg">
+            <p className="text-center text-slate-400 py-12 text-lg">
               No tasks yet. Add one above to get started!
             </p>
           )}
 
-          <ul className="space-y-4">
+          <ul className="space-y-5">
             {tasks.map((task) => (
               <li
                 key={task.id}
-                className={`flex flex-col p-4 rounded-lg transition-all duration-300 ease-in-out shadow-md hover:shadow-lg
+                className={`flex flex-col p-5 rounded-lg transition-all duration-300 ease-in-out shadow-md hover:shadow-lg
                 ${
                   task.completed
                     ? "bg-slate-800/60 border border-slate-700"
@@ -189,7 +189,7 @@ export default function HomePage() {
               `}
               >
                 <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center space-x-3 flex-1 min-w-0">
+                  <div className="flex items-center space-x-4 flex-1 min-w-0">
                     <Checkbox
                       id={`task-${task.id}`}
                       checked={task.completed}
@@ -205,13 +205,13 @@ export default function HomePage() {
                           if (e.key === "Enter") handleSaveEdit(task.id);
                           if (e.key === "Escape") handleCancelEdit();
                         }}
-                        className="flex-1 bg-slate-700 border-slate-600 text-slate-100 h-8 text-sm"
+                        className="flex-1 bg-slate-700 border-slate-600 text-slate-100 h-9 text-sm px-3"
                         autoFocus
                       />
                     ) : (
                       <label
                         htmlFor={`task-${task.id}`}
-                        className={`cursor-pointer text-base truncate ${
+                        className={`cursor-pointer text-base truncate py-1 ${
                           task.completed
                             ? "line-through text-slate-500"
                             : "text-slate-100"
@@ -223,26 +223,26 @@ export default function HomePage() {
                       </label>
                     )}
                   </div>
-                  <div className="flex items-center space-x-2 shrink-0">
+                  <div className="flex items-center space-x-1 shrink-0 ml-3">
                     {editingTaskId === task.id ? (
                       <>
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => handleSaveEdit(task.id)}
-                          className="text-green-500 hover:text-green-400 hover:bg-slate-700/50"
+                          className="text-green-500 hover:text-green-400 hover:bg-slate-700/50 h-8 w-8"
                           aria-label="Save task"
                         >
-                          <Save size={18} />
+                          <Save size={16} />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={handleCancelEdit}
-                          className="text-slate-400 hover:text-slate-300 hover:bg-slate-700/50"
+                          className="text-slate-400 hover:text-slate-300 hover:bg-slate-700/50 h-8 w-8"
                           aria-label="Cancel edit"
                         >
-                          <X size={18} />
+                          <X size={16} />
                         </Button>
                       </>
                     ) : (
@@ -251,19 +251,19 @@ export default function HomePage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleStartEdit(task)}
-                          className="text-slate-400 hover:text-sky-500 hover:bg-slate-700/50"
+                          className="text-slate-400 hover:text-sky-500 hover:bg-slate-700/50 h-8 w-8"
                           aria-label="Edit task"
                         >
-                          <Edit3 size={18} />
+                          <Edit3 size={16} />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDeleteTask(task.id)}
-                          className="text-slate-400 hover:text-red-500 hover:bg-slate-700/50"
+                          className="text-slate-400 hover:text-red-500 hover:bg-slate-700/50 h-8 w-8"
                           aria-label="Delete task"
                         >
-                          <X size={18} />
+                          <X size={16} />
                         </Button>
                       </>
                     )}
@@ -271,19 +271,19 @@ export default function HomePage() {
                 </div>
 
                 {(task.dueDate || task.priority || !task.completed) && (
-                  <div className="mt-3 pt-3 border-t border-slate-700/50 flex items-center justify-between space-x-2 text-xs text-slate-400">
-                    <div className="flex items-center space-x-2">
+                  <div className="mt-4 pt-4 border-t border-slate-700/50 flex items-center justify-between space-x-3 text-xs text-slate-400">
+                    <div className="flex items-center space-x-3">
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button
                             variant={"outline"}
                             size="sm"
-                            className={`justify-start text-left font-normal h-7 px-2 border-slate-700 hover:bg-slate-700/50
+                            className={`justify-start text-left font-normal h-8 px-3 border-slate-700 hover:bg-slate-700/50
                             ${!task.dueDate && "text-slate-500"}
                             ${task.dueDate && new Date(task.dueDate) < new Date() && !task.completed ? "text-red-400 border-red-600" : ""}
                           `}
                           >
-                            <CalendarIcon className="mr-1 h-3.5 w-3.5" />
+                            <CalendarIcon className="mr-2 h-3.5 w-3.5" />
                             {task.dueDate ? (
                               format(task.dueDate, "MMM d, yyyy")
                             ) : (
@@ -299,7 +299,7 @@ export default function HomePage() {
                             initialFocus
                             className="text-slate-100"
                           />
-                           <Button variant="ghost" size="sm" className="w-full justify-start text-slate-400 hover:text-red-500" onClick={() => handleSetDueDate(task.id, undefined)}>Clear Date</Button>
+                           <Button variant="ghost" size="sm" className="w-full justify-start text-slate-400 hover:text-red-500 p-3" onClick={() => handleSetDueDate(task.id, undefined)}>Clear Date</Button>
                         </PopoverContent>
                       </Popover>
 
@@ -309,21 +309,36 @@ export default function HomePage() {
                           handleSetPriority(task.id, value)
                         }
                       >
-                        <SelectTrigger className="h-7 px-2 text-xs border-slate-700 hover:bg-slate-700/50 w-[120px]">
-                         <div className="flex items-center">
+                        <SelectTrigger className="h-8 px-3 text-xs border-slate-700 hover:bg-slate-700/50 w-[130px]">
+                         <div className="flex items-center space-x-2">
                           {getPriorityIcon(task.priority)}
-                          <SelectValue placeholder="Set priority" className="ml-1" />
+                          <SelectValue placeholder="Set priority" />
                          </div>
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 border-slate-700 text-slate-100">
-                          <SelectItem value="low" className="text-green-500 focus:bg-slate-700">Low</SelectItem>
-                          <SelectItem value="medium" className="text-yellow-500 focus:bg-slate-700">Medium</SelectItem>
-                          <SelectItem value="high" className="text-red-500 focus:bg-slate-700">High</SelectItem>
+                          <SelectItem value="low" className="text-green-500 focus:bg-slate-700 py-2">
+                            <div className="flex items-center space-x-2">
+                              <CheckCircle className="h-4 w-4" />
+                              <span>Low</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="medium" className="text-yellow-500 focus:bg-slate-700 py-2">
+                            <div className="flex items-center space-x-2">
+                              <Info className="h-4 w-4" />
+                              <span>Medium</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="high" className="text-red-500 focus:bg-slate-700 py-2">
+                            <div className="flex items-center space-x-2">
+                              <AlertCircle className="h-4 w-4" />
+                              <span>High</span>
+                            </div>
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                        {task.priority && (
                          <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-red-500" onClick={() => handleSetPriority(task.id, undefined)}>
-                            <X size={14} />
+                            <X size={12} />
                          </Button>
                        )}
                     </div>
@@ -337,7 +352,7 @@ export default function HomePage() {
           </ul>
         </CardContent>
         {tasks.length > 0 && (
-            <CardFooter className="border-t border-slate-700 pt-4 text-sm text-slate-500">
+            <CardFooter className="border-t border-slate-700 pt-6 text-sm text-slate-500">
                 <p>{tasks.filter(t => !t.completed).length} tasks remaining</p>
             </CardFooter>
         )}
