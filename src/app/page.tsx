@@ -310,27 +310,36 @@ export default function HomePage() {
                         }
                       >
                         <SelectTrigger className="h-8 px-3 text-xs border-slate-700 hover:bg-slate-700/50 w-[130px]">
-                         <div className="flex items-center space-x-2">
-                          {getPriorityIcon(task.priority)}
-                          <SelectValue placeholder="Set priority" />
-                         </div>
+                          <SelectValue placeholder={
+                            <div className="flex items-center space-x-2">
+                              <Tag className="h-4 w-4 text-slate-500" />
+                              <span>Set priority</span>
+                            </div>
+                          }>
+                            {task.priority && (
+                              <div className="flex items-center space-x-2">
+                                {getPriorityIcon(task.priority)}
+                                <span className="capitalize">{task.priority}</span>
+                              </div>
+                            )}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 border-slate-700 text-slate-100">
-                          <SelectItem value="low" className="text-green-500 focus:bg-slate-700 py-2">
+                          <SelectItem value="low" className="focus:bg-slate-700 py-2">
                             <div className="flex items-center space-x-2">
-                              <CheckCircle className="h-4 w-4" />
+                              <CheckCircle className="h-4 w-4 text-green-500" />
                               <span>Low</span>
                             </div>
                           </SelectItem>
-                          <SelectItem value="medium" className="text-yellow-500 focus:bg-slate-700 py-2">
+                          <SelectItem value="medium" className="focus:bg-slate-700 py-2">
                             <div className="flex items-center space-x-2">
-                              <Info className="h-4 w-4" />
+                              <Info className="h-4 w-4 text-yellow-500" />
                               <span>Medium</span>
                             </div>
                           </SelectItem>
-                          <SelectItem value="high" className="text-red-500 focus:bg-slate-700 py-2">
+                          <SelectItem value="high" className="focus:bg-slate-700 py-2">
                             <div className="flex items-center space-x-2">
-                              <AlertCircle className="h-4 w-4" />
+                              <AlertCircle className="h-4 w-4 text-red-500" />
                               <span>High</span>
                             </div>
                           </SelectItem>
