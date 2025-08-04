@@ -25,28 +25,52 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
-import { X, CalendarIcon, Edit3, Save, Tag, AlertCircle, Info, CheckCircle } from "lucide-react";
+import { X, CalendarIcon, Edit3, Save, Tag, AlertCircle, Info, CheckCircle, Folder, FolderPlus } from "lucide-react";
 import { format } from "date-fns";
 
+// Task interface - defines the structure of a task object
 interface Task {
-  id: string;
-  text: string;
-  completed: boolean;
-  dueDate?: Date;
-  priority?: "low" | "medium" | "high";
+  id: string; // Unique identifier for each task
+  text: string; // The task description/content
+  completed: boolean; // Whether the task is completed or not
+  dueDate?: Date; // Optional due date for the task
+  priority?: "low" | "medium" | "high"; // Optional priority level
+  folderId?: string; // Optional folder ID to organize tasks into folders
 }
 
-const LOCAL_STORAGE_KEY = "todoApp.tasks";
+// Folder interface - defines the structure of a folder object
+interface Folder {
+  id: string; // Unique identifier for each folder
+  name: string; // Display name of the folder
+  color?: string; // Optional color for visual distinction (hex color code)
+}
+
+// Local storage keys for persisting data
+const LOCAL_STORAGE_KEY = "todoApp.tasks"; // Key for storing tasks in localStorage
+const FOLDERS_STORAGE_KEY = "todoApp.folders"; // Key for storing folders in localStorage
 
 export default function HomePage() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [newTaskText, setNewTaskText] = useState("");
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [editText, setEditText] = useState("");
+  // Core state management for tasks and folders
+  const [tasks, setTasks] = useState<Task[]>([]); // Array of all tasks
+  const [folders, setFolders] = useState<Folder[]>([]); // Array of all folders
+  
+  // Task creation and editing state
+  const [newTaskText, setNewTaskText] = useState(""); // Text input for creating new tasks
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null); // ID of task currently being edited
+  const [editText, setEditText] = useState(""); // Text content when editing a task
+  
+  // Folder management state
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null); // ID of folder currently being edited
+  const [editFolderText, setEditFolderText] = useState(""); // Text content when editing a folder name
+  const [newFolderText, setNewFolderText] = useState(""); // Text input for creating new folders
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null); // Currently selected folder for filtering tasks
+  const [showNewFolderInput, setShowNewFolderInput] = useState(false); // Toggle for showing/hiding new folder input
 
+  // Effect hook to load tasks from localStorage on component mount
   useEffect(() => {
     const storedTasks = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (storedTasks) {
+      // Parse stored tasks and convert dueDate strings back to Date objects
       const parsedTasks = JSON.parse(storedTasks).map((task: Task) => ({
         ...task,
         dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
@@ -55,23 +79,48 @@ export default function HomePage() {
     }
   }, []);
 
+  // Effect hook to load folders from localStorage on component mount
+  useEffect(() => {
+    const storedFolders = localStorage.getItem(FOLDERS_STORAGE_KEY);
+    if (storedFolders) {
+      setFolders(JSON.parse(storedFolders));
+    }
+  }, []);
+
+  // Effect hook to save tasks to localStorage whenever tasks array changes
   useEffect(() => {
     if (tasks.length > 0 || localStorage.getItem(LOCAL_STORAGE_KEY)) {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(tasks));
     }
   }, [tasks]);
 
+  // Effect hook to save folders to localStorage whenever folders array changes
+  useEffect(() => {
+    if (folders.length > 0 || localStorage.getItem(FOLDERS_STORAGE_KEY)) {
+      localStorage.setItem(FOLDERS_STORAGE_KEY, JSON.stringify(folders));
+    }
+  }, [folders]);
+
+  /**
+   * Handler for adding a new task
+   * Creates a task object with unique ID and assigns it to the currently selected folder
+   */
   const handleAddTask = () => {
-    if (newTaskText.trim() === "") return;
+    if (newTaskText.trim() === "") return; // Prevent adding empty tasks
     const newTask: Task = {
-      id: crypto.randomUUID(),
+      id: crypto.randomUUID(), // Generate unique identifier
       text: newTaskText,
       completed: false,
+      folderId: selectedFolder || undefined, // Assign to selected folder or no folder
     };
-    setTasks((prevTasks) => [newTask, ...prevTasks]);
-    setNewTaskText("");
+    setTasks((prevTasks) => [newTask, ...prevTasks]); // Add to beginning of tasks array
+    setNewTaskText(""); // Clear input field
   };
 
+  /**
+   * Handler for toggling task completion status
+   * Updates the completed property of the specified task
+   */
   const handleToggleComplete = (taskId: string) => {
     setTasks((prevTasks) =>
       prevTasks.map((task) =>
@@ -80,31 +129,51 @@ export default function HomePage() {
     );
   };
 
+  /**
+   * Handler for deleting a task
+   * Removes the task from the tasks array using filter
+   */
   const handleDeleteTask = (taskId: string) => {
     setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
   };
 
+  /**
+   * Handler for starting task edit mode
+   * Sets the editing state and populates the edit text field
+   */
   const handleStartEdit = (task: Task) => {
     setEditingTaskId(task.id);
     setEditText(task.text);
   };
 
+  /**
+   * Handler for saving task edits
+   * Updates the task text and exits edit mode
+   */
   const handleSaveEdit = (taskId: string) => {
-    if (editText.trim() === "") return;
+    if (editText.trim() === "") return; // Prevent saving empty tasks
     setTasks((prevTasks) =>
       prevTasks.map((task) =>
         task.id === taskId ? { ...task, text: editText } : task
       )
     );
-    setEditingTaskId(null);
-    setEditText("");
+    setEditingTaskId(null); // Exit edit mode
+    setEditText(""); // Clear edit text
   };
 
+  /**
+   * Handler for canceling task edit
+   * Exits edit mode without saving changes
+   */
   const handleCancelEdit = () => {
     setEditingTaskId(null);
     setEditText("");
   };
 
+  /**
+   * Handler for setting or clearing task due date
+   * Updates the dueDate property of the specified task
+   */
   const handleSetDueDate = (taskId: string, date?: Date) => {
     setTasks((prevTasks) =>
       prevTasks.map((task) =>
@@ -113,6 +182,15 @@ export default function HomePage() {
     );
   };
 
+  /**
+   * Handler for setting or clearing task priority
+   * Updates the priority property of the specified task
+   */
+
+  /**
+   * Handler for setting or clearing task priority
+   * Updates the priority property of the specified task
+   */
   const handleSetPriority = (
     taskId: string,
     priority?: "low" | "medium" | "high"
@@ -124,6 +202,89 @@ export default function HomePage() {
     );
   };
 
+  /**
+   * Handler for adding a new folder
+   * Creates a folder object with unique ID and random color
+   */
+  const handleAddFolder = () => {
+    if (newFolderText.trim() === "") return; // Prevent adding empty folders
+    const newFolder: Folder = {
+      id: crypto.randomUUID(), // Generate unique identifier
+      name: newFolderText,
+      color: `#${Math.floor(Math.random()*16777215).toString(16)}`, // Generate random hex color
+    };
+    setFolders((prevFolders) => [...prevFolders, newFolder]); // Add to folders array
+    setNewFolderText(""); // Clear input field
+    setShowNewFolderInput(false); // Hide input field
+  };
+
+  /**
+   * Handler for deleting a folder
+   * Removes folder and moves its tasks to "no folder" state
+   */
+  const handleDeleteFolder = (folderId: string) => {
+    // Move tasks from deleted folder to no folder (removes folderId)
+    setTasks((prevTasks) =>
+      prevTasks.map((task) =>
+        task.folderId === folderId ? { ...task, folderId: undefined } : task
+      )
+    );
+    setFolders((prevFolders) => prevFolders.filter((folder) => folder.id !== folderId));
+    // If deleted folder was selected, reset selection
+    if (selectedFolder === folderId) {
+      setSelectedFolder(null);
+    }
+  };
+
+  /**
+   * Handler for starting folder edit mode
+   * Sets the editing state and populates the edit text field
+   */
+  const handleStartEditFolder = (folder: Folder) => {
+    setEditingFolderId(folder.id);
+    setEditFolderText(folder.name);
+  };
+
+  /**
+   * Handler for saving folder edits
+   * Updates the folder name and exits edit mode
+   */
+  const handleSaveEditFolder = (folderId: string) => {
+    if (editFolderText.trim() === "") return; // Prevent saving empty folder names
+    setFolders((prevFolders) =>
+      prevFolders.map((folder) =>
+        folder.id === folderId ? { ...folder, name: editFolderText } : folder
+      )
+    );
+    setEditingFolderId(null); // Exit edit mode
+    setEditFolderText(""); // Clear edit text
+  };
+
+  /**
+   * Handler for canceling folder edit
+   * Exits edit mode without saving changes
+   */
+  const handleCancelEditFolder = () => {
+    setEditingFolderId(null);
+    setEditFolderText("");
+  };
+
+  /**
+   * Handler for moving a task to a different folder
+   * Updates the folderId property of the specified task
+   */
+  const handleMoveTaskToFolder = (taskId: string, folderId?: string) => {
+    setTasks((prevTasks) =>
+      prevTasks.map((task) =>
+        task.id === taskId ? { ...task, folderId: folderId } : task
+      )
+    );
+  };
+
+  /**
+   * Helper function to get the appropriate icon for task priority levels
+   * Returns different colored icons based on priority (high=red, medium=yellow, low=green)
+   */
   const getPriorityIcon = (priority?: "low" | "medium" | "high") => {
     switch (priority) {
       case "high":
@@ -137,47 +298,248 @@ export default function HomePage() {
     }
   };
 
+  /**
+   * Filter tasks based on selected folder
+   * If a folder is selected, show only tasks in that folder
+   * If no folder is selected, show only tasks that don't belong to any folder
+   */
+  const filteredTasks = selectedFolder
+    ? tasks.filter(task => task.folderId === selectedFolder)
+    : tasks.filter(task => !task.folderId); // Show tasks without folders when no folder is selected
+
+  /**
+   * Helper function to count incomplete tasks in a specific folder
+   * Used for displaying task counts in folder list
+   */
+  const getTaskCountForFolder = (folderId?: string) => {
+    return tasks.filter(task => task.folderId === folderId && !task.completed).length;
+  };
+
   return (
     <main className="flex min-h-screen flex-col items-center p-6 sm:p-10 md:p-14 lg:p-28 bg-gradient-to-br from-slate-950 to-slate-800 text-slate-50">
-      <Card className="w-full max-w-2xl bg-slate-900/80 border-slate-700 shadow-2xl backdrop-blur-sm">
-                <CardHeader className="border-b border-slate-700 pb-6">
-          <CardTitle className="text-4xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-blue-600 mb-2">
-            2do List 
-          </CardTitle>
-          <CardDescription className="text-center text-slate-400">
-            Organize your tasks with due dates and priorities.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-8">
-          <div className="flex w-full items-center space-x-3 mb-10">
-            <Input
-              type="text"
-              placeholder="Add a new task..."
-              value={newTaskText}
-              onChange={(e) => setNewTaskText(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === "Enter") {
-                  handleAddTask();
-                }
-              }}
-              className="flex-1 bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500 focus:ring-sky-500 focus:border-sky-500 rounded-md h-12 text-base px-4"
-            />
-            <Button
-              onClick={handleAddTask}
-              className="bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-md h-12 px-8 text-base"
+      {/* Main container with two-column layout for folders and tasks */}
+      <div className="w-full max-w-6xl flex gap-6">
+        
+        {/* Folder Sidebar */}
+        <Card className="w-80 bg-slate-900/80 border-slate-700 shadow-2xl backdrop-blur-sm h-fit">
+          <CardHeader className="border-b border-slate-700 pb-4">
+            <CardTitle className="text-xl font-bold text-slate-100 flex items-center gap-2">
+              <Folder className="h-5 w-5" />
+              Folders
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4">
+            {/* All Tasks (no folder) option */}
+            <div
+              className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all mb-2 ${
+                selectedFolder === null
+                  ? "bg-sky-600/20 border border-sky-600/50"
+                  : "hover:bg-slate-800 border border-transparent"
+              }`}
+              onClick={() => setSelectedFolder(null)}
             >
-              Add Task
-            </Button>
-          </div>
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-slate-500"></div>
+                <span className="text-slate-100">All Tasks</span>
+              </div>
+              <span className="text-xs text-slate-400 bg-slate-700 px-2 py-1 rounded">
+                {getTaskCountForFolder(undefined)}
+              </span>
+            </div>
 
-          {tasks.length === 0 && (
-            <p className="text-center text-slate-400 py-12 text-lg">
-              No tasks yet. Add one above to get started!
-            </p>
-          )}
+            {/* Folder List */}
+            <div className="space-y-2 mb-4">
+              {folders.map((folder) => (
+                <div key={folder.id} className="group">
+                  {editingFolderId === folder.id ? (
+                    /* Folder Edit Mode */
+                    <div className="flex items-center gap-2 p-2 bg-slate-800 rounded-lg">
+                      <div
+                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: folder.color }}
+                      ></div>
+                      <Input
+                        type="text"
+                        value={editFolderText}
+                        onChange={(e) => setEditFolderText(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === "Enter") handleSaveEditFolder(folder.id);
+                          if (e.key === "Escape") handleCancelEditFolder();
+                        }}
+                        className="flex-1 h-7 text-sm bg-slate-700 border-slate-600"
+                        autoFocus
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-green-500 hover:text-green-400"
+                        onClick={() => handleSaveEditFolder(folder.id)}
+                      >
+                        <Save size={12} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-slate-400 hover:text-slate-300"
+                        onClick={handleCancelEditFolder}
+                      >
+                        <X size={12} />
+                      </Button>
+                    </div>
+                  ) : (
+                    /* Folder Display Mode */
+                    <div
+                      className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all ${
+                        selectedFolder === folder.id
+                          ? "bg-sky-600/20 border border-sky-600/50"
+                          : "hover:bg-slate-800 border border-transparent"
+                      }`}
+                      onClick={() => setSelectedFolder(folder.id)}
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div
+                          className="w-3 h-3 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: folder.color }}
+                        ></div>
+                        <span className="text-slate-100 truncate" title={folder.name}>
+                          {folder.name}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="text-xs text-slate-400 bg-slate-700 px-2 py-1 rounded mr-1">
+                          {getTaskCountForFolder(folder.id)}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-slate-400 hover:text-sky-500"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStartEditFolder(folder);
+                          }}
+                        >
+                          <Edit3 size={12} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-slate-400 hover:text-red-500"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteFolder(folder.id);
+                          }}
+                        >
+                          <X size={12} />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
 
-          <ul className="space-y-5">
-            {tasks.map((task) => (
+            {/* Add New Folder Section */}
+            {showNewFolderInput ? (
+              <div className="flex items-center gap-2 p-2 bg-slate-800 rounded-lg">
+                <div className="w-3 h-3 rounded-full bg-slate-500 flex-shrink-0"></div>
+                <Input
+                  type="text"
+                  placeholder="Folder name..."
+                  value={newFolderText}
+                  onChange={(e) => setNewFolderText(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") handleAddFolder();
+                    if (e.key === "Escape") {
+                      setShowNewFolderInput(false);
+                      setNewFolderText("");
+                    }
+                  }}
+                  className="flex-1 h-7 text-sm bg-slate-700 border-slate-600"
+                  autoFocus
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-green-500 hover:text-green-400"
+                  onClick={handleAddFolder}
+                >
+                  <Save size={12} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-slate-400 hover:text-slate-300"
+                  onClick={() => {
+                    setShowNewFolderInput(false);
+                    setNewFolderText("");
+                  }}
+                >
+                  <X size={12} />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full border-slate-700 text-slate-400 hover:text-slate-100 hover:bg-slate-800"
+                onClick={() => setShowNewFolderInput(true)}
+              >
+                <FolderPlus size={16} className="mr-2" />
+                Add Folder
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Main Tasks Panel */}
+        <Card className="flex-1 bg-slate-900/80 border-slate-700 shadow-2xl backdrop-blur-sm">
+          <CardHeader className="border-b border-slate-700 pb-6">
+            <CardTitle className="text-4xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-blue-600 mb-2">
+              2do List 
+            </CardTitle>
+            <CardDescription className="text-center text-slate-400">
+              {selectedFolder 
+                ? `Tasks in "${folders.find(f => f.id === selectedFolder)?.name || 'Unknown Folder'}"`
+                : "All tasks without folders"
+              }
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-8">
+            {/* Task Input Section */}
+            <div className="flex w-full items-center space-x-3 mb-10">
+              <Input
+                type="text"
+                placeholder={`Add a new task${selectedFolder ? ` to ${folders.find(f => f.id === selectedFolder)?.name}` : ''}...`}
+                value={newTaskText}
+                onChange={(e) => setNewTaskText(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter") {
+                    handleAddTask();
+                  }
+                }}
+                className="flex-1 bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500 focus:ring-sky-500 focus:border-sky-500 rounded-md h-12 text-base px-4"
+              />
+              <Button
+                onClick={handleAddTask}
+                className="bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-md h-12 px-8 text-base"
+              >
+                Add Task
+              </Button>
+            </div>
+
+            {/* Empty State */}
+            {filteredTasks.length === 0 && (
+              <p className="text-center text-slate-400 py-12 text-lg">
+                {selectedFolder 
+                  ? `No tasks in this folder yet. Add one above to get started!`
+                  : "No tasks yet. Add one above to get started!"
+                }
+              </p>
+            )}
+
+            {/* Tasks List */}
+            <ul className="space-y-5">
+              {filteredTasks.map((task) => (
               <li
                 key={task.id}
                 className={`flex flex-col p-5 rounded-lg transition-all duration-300 ease-in-out shadow-md hover:shadow-lg
@@ -273,6 +635,7 @@ export default function HomePage() {
                 {(task.dueDate || task.priority || !task.completed) && (
                   <div className="mt-4 pt-4 border-t border-slate-700/50 flex items-center justify-between space-x-3 text-xs text-slate-400">
                     <div className="flex items-center space-x-3">
+                      {/* Due Date Selector */}
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button
@@ -303,23 +666,24 @@ export default function HomePage() {
                         </PopoverContent>
                       </Popover>
 
+                      {/* Priority Selector */}
                       <Select
-                        value={task.priority}
+                        value={task.priority || ""}
                         onValueChange={(value: "low" | "medium" | "high") =>
                           handleSetPriority(task.id, value)
                         }
                       >
                         <SelectTrigger className="h-8 px-3 text-xs border-slate-700 hover:bg-slate-700/50 w-[130px]">
-                          <SelectValue placeholder={
-                            <div className="flex items-center space-x-2">
-                              <Tag className="h-4 w-4 text-slate-500" />
-                              <span>Set priority</span>
-                            </div>
-                          }>
-                            {task.priority && (
+                          <SelectValue placeholder="Set priority">
+                            {task.priority ? (
                               <div className="flex items-center space-x-2">
                                 {getPriorityIcon(task.priority)}
                                 <span className="capitalize">{task.priority}</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                <Tag className="h-4 w-4 text-slate-500" />
+                                <span>Set priority</span>
                               </div>
                             )}
                           </SelectValue>
@@ -345,12 +709,62 @@ export default function HomePage() {
                           </SelectItem>
                         </SelectContent>
                       </Select>
-                       {task.priority && (
+                      {/* Priority Clear Button */}
+                      {task.priority && (
                          <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-red-500" onClick={() => handleSetPriority(task.id, undefined)}>
                             <X size={12} />
                          </Button>
-                       )}
+                      )}
+
+                      {/* Folder Selector for moving tasks between folders */}
+                      <Select
+                        value={task.folderId || "no-folder"}
+                        onValueChange={(value: string) =>
+                          handleMoveTaskToFolder(task.id, value === "no-folder" ? undefined : value)
+                        }
+                      >
+                        <SelectTrigger className="h-8 px-3 text-xs border-slate-700 hover:bg-slate-700/50 w-[140px]">
+                          <SelectValue placeholder="Move to folder">
+                            {task.folderId ? (
+                              <div className="flex items-center space-x-2">
+                                <div
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: folders.find(f => f.id === task.folderId)?.color }}
+                                ></div>
+                                <span className="truncate">
+                                  {folders.find(f => f.id === task.folderId)?.name || "Unknown"}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                <Folder className="h-4 w-4 text-slate-500" />
+                                <span>No folder</span>
+                              </div>
+                            )}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 border-slate-700 text-slate-100">
+                          <SelectItem value="no-folder" className="focus:bg-slate-700 py-2">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-3 h-3 rounded-full bg-slate-500"></div>
+                              <span>No folder</span>
+                            </div>
+                          </SelectItem>
+                          {folders.map((folder) => (
+                            <SelectItem key={folder.id} value={folder.id} className="focus:bg-slate-700 py-2">
+                              <div className="flex items-center space-x-2">
+                                <div
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: folder.color }}
+                                ></div>
+                                <span className="truncate">{folder.name}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
+                    {/* Completion Status */}
                     {task.completed && (
                         <span className="text-green-500 text-xs font-medium">Completed</span>
                     )}
@@ -360,12 +774,14 @@ export default function HomePage() {
             ))}
           </ul>
         </CardContent>
-        {tasks.length > 0 && (
+        {/* Footer showing task count */}
+        {filteredTasks.length > 0 && (
             <CardFooter className="border-t border-slate-700 pt-6 text-sm text-slate-500">
-                <p>{tasks.filter(t => !t.completed).length} tasks remaining</p>
+                <p>{filteredTasks.filter(t => !t.completed).length} tasks remaining</p>
             </CardFooter>
         )}
       </Card>
+      </div> {/* Close the main container div */}
     </main>
   );
 }
