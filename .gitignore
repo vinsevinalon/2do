@@ -43,3 +43,6 @@ next-env.d.ts
 # ai
 /.github
 /.vscode
+
+# documentation
+PRODUCTT_REQUIREMENTS.md

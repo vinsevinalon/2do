@@ -316,31 +316,31 @@ export default function HomePage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-6 sm:p-10 md:p-14 lg:p-28 bg-gradient-to-br from-slate-950 to-slate-800 text-slate-50">
-      {/* Main container with two-column layout for folders and tasks */}
-      <div className="w-full max-w-6xl flex gap-6">
+    <main className="flex min-h-screen flex-col items-center p-3 sm:p-6 md:p-10 lg:p-14 xl:p-28 bg-gradient-to-br from-slate-950 to-slate-800 text-slate-50">
+      {/* Main container with responsive layout - stacked on mobile, side-by-side on desktop */}
+      <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-4 lg:gap-6">
         
-        {/* Folder Sidebar */}
-        <Card className="w-80 bg-slate-900/80 border-slate-700 shadow-2xl backdrop-blur-sm h-fit">
-          <CardHeader className="border-b border-slate-700 pb-4">
-            <CardTitle className="text-xl font-bold text-slate-100 flex items-center gap-2">
-              <Folder className="h-5 w-5" />
+        {/* Folder Sidebar - full width on mobile, fixed width on desktop */}
+        <Card className="w-full lg:w-80 bg-slate-900/80 border-slate-700 shadow-2xl backdrop-blur-sm h-fit order-2 lg:order-1">
+          <CardHeader className="border-b border-slate-700 pb-3 lg:pb-4">
+            <CardTitle className="text-lg lg:text-xl font-bold text-slate-100 flex items-center gap-2">
+              <Folder className="h-4 w-4 lg:h-5 lg:w-5" />
               Folders
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-4">
+          <CardContent className="p-3 lg:p-4">
             {/* All Tasks (no folder) option */}
             <div
-              className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all mb-2 ${
+              className={`flex items-center justify-between p-2 lg:p-3 rounded-lg cursor-pointer transition-all mb-2 ${
                 selectedFolder === null
                   ? "bg-sky-600/20 border border-sky-600/50"
                   : "hover:bg-slate-800 border border-transparent"
               }`}
               onClick={() => setSelectedFolder(null)}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 lg:gap-3">
                 <div className="w-3 h-3 rounded-full bg-slate-500"></div>
-                <span className="text-slate-100">All Tasks</span>
+                <span className="text-sm lg:text-base text-slate-100">All Tasks</span>
               </div>
               <span className="text-xs text-slate-400 bg-slate-700 px-2 py-1 rounded">
                 {getTaskCountForFolder(undefined)}
@@ -348,7 +348,7 @@ export default function HomePage() {
             </div>
 
             {/* Folder List */}
-            <div className="space-y-2 mb-4">
+            <div className="space-y-2 mb-3 lg:mb-4">
               {folders.map((folder) => (
                 <div key={folder.id} className="group">
                   {editingFolderId === folder.id ? (
@@ -389,23 +389,23 @@ export default function HomePage() {
                   ) : (
                     /* Folder Display Mode */
                     <div
-                      className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all ${
+                      className={`flex items-center justify-between p-2 lg:p-3 rounded-lg cursor-pointer transition-all ${
                         selectedFolder === folder.id
                           ? "bg-sky-600/20 border border-sky-600/50"
                           : "hover:bg-slate-800 border border-transparent"
                       }`}
                       onClick={() => setSelectedFolder(folder.id)}
                     >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 lg:gap-3 flex-1 min-w-0">
                         <div
                           className="w-3 h-3 rounded-full flex-shrink-0"
                           style={{ backgroundColor: folder.color }}
                         ></div>
-                        <span className="text-slate-100 truncate" title={folder.name}>
+                        <span className="text-sm lg:text-base text-slate-100 truncate" title={folder.name}>
                           {folder.name}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                         <span className="text-xs text-slate-400 bg-slate-700 px-2 py-1 rounded mr-1">
                           {getTaskCountForFolder(folder.id)}
                         </span>
@@ -481,32 +481,32 @@ export default function HomePage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full border-slate-700 text-slate-400 hover:text-slate-100 hover:bg-slate-800"
+                className="w-full border-slate-700 text-slate-400 hover:text-slate-100 hover:bg-slate-800 text-sm"
                 onClick={() => setShowNewFolderInput(true)}
               >
-                <FolderPlus size={16} className="mr-2" />
+                <FolderPlus size={14} className="mr-2" />
                 Add Folder
               </Button>
             )}
           </CardContent>
         </Card>
 
-        {/* Main Tasks Panel */}
-        <Card className="flex-1 bg-slate-900/80 border-slate-700 shadow-2xl backdrop-blur-sm">
-          <CardHeader className="border-b border-slate-700 pb-6">
-            <CardTitle className="text-4xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-blue-600 mb-2">
+        {/* Main Tasks Panel - full width on mobile, flexible on desktop */}
+        <Card className="flex-1 bg-slate-900/80 border-slate-700 shadow-2xl backdrop-blur-sm order-1 lg:order-2">
+          <CardHeader className="border-b border-slate-700 pb-4 lg:pb-6">
+            <CardTitle className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-blue-600 mb-2">
               2do List 
             </CardTitle>
-            <CardDescription className="text-center text-slate-400">
+            <CardDescription className="text-center text-slate-400 text-sm lg:text-base px-2">
               {selectedFolder 
                 ? `Tasks in "${folders.find(f => f.id === selectedFolder)?.name || 'Unknown Folder'}"`
                 : "All tasks without folders"
               }
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-8">
+          <CardContent className="p-4 lg:p-8">
             {/* Task Input Section */}
-            <div className="flex w-full items-center space-x-3 mb-10">
+            <div className="flex flex-col sm:flex-row w-full items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-3 mb-6 lg:mb-10">
               <Input
                 type="text"
                 placeholder={`Add a new task${selectedFolder ? ` to ${folders.find(f => f.id === selectedFolder)?.name}` : ''}...`}
@@ -517,11 +517,11 @@ export default function HomePage() {
                     handleAddTask();
                   }
                 }}
-                className="flex-1 bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500 focus:ring-sky-500 focus:border-sky-500 rounded-md h-12 text-base px-4"
+                className="flex-1 bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500 focus:ring-sky-500 focus:border-sky-500 rounded-md h-11 lg:h-12 text-sm lg:text-base px-3 lg:px-4"
               />
               <Button
                 onClick={handleAddTask}
-                className="bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-md h-12 px-8 text-base"
+                className="bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-md h-11 lg:h-12 px-6 lg:px-8 text-sm lg:text-base w-full sm:w-auto"
               >
                 Add Task
               </Button>
@@ -529,7 +529,7 @@ export default function HomePage() {
 
             {/* Empty State */}
             {filteredTasks.length === 0 && (
-              <p className="text-center text-slate-400 py-12 text-lg">
+              <p className="text-center text-slate-400 py-8 lg:py-12 text-base lg:text-lg px-4">
                 {selectedFolder 
                   ? `No tasks in this folder yet. Add one above to get started!`
                   : "No tasks yet. Add one above to get started!"
@@ -538,11 +538,11 @@ export default function HomePage() {
             )}
 
             {/* Tasks List */}
-            <ul className="space-y-5">
+            <ul className="space-y-3 lg:space-y-5">
               {filteredTasks.map((task) => (
               <li
                 key={task.id}
-                className={`flex flex-col p-5 rounded-lg transition-all duration-300 ease-in-out shadow-md hover:shadow-lg
+                className={`flex flex-col p-4 lg:p-5 rounded-lg transition-all duration-300 ease-in-out shadow-md hover:shadow-lg
                 ${
                   task.completed
                     ? "bg-slate-800/60 border border-slate-700"
@@ -551,7 +551,7 @@ export default function HomePage() {
               `}
               >
                 <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center space-x-4 flex-1 min-w-0">
+                  <div className="flex items-center space-x-3 lg:space-x-4 flex-1 min-w-0">
                     <Checkbox
                       id={`task-${task.id}`}
                       checked={task.completed}
@@ -567,13 +567,13 @@ export default function HomePage() {
                           if (e.key === "Enter") handleSaveEdit(task.id);
                           if (e.key === "Escape") handleCancelEdit();
                         }}
-                        className="flex-1 bg-slate-700 border-slate-600 text-slate-100 h-9 text-sm px-3"
+                        className="flex-1 bg-slate-700 border-slate-600 text-slate-100 h-8 lg:h-9 text-sm px-3"
                         autoFocus
                       />
                     ) : (
                       <label
                         htmlFor={`task-${task.id}`}
-                        className={`cursor-pointer text-base truncate py-1 ${
+                        className={`cursor-pointer text-sm lg:text-base truncate py-1 ${
                           task.completed
                             ? "line-through text-slate-500"
                             : "text-slate-100"
@@ -585,26 +585,28 @@ export default function HomePage() {
                       </label>
                     )}
                   </div>
-                  <div className="flex items-center space-x-1 shrink-0 ml-3">
+                  <div className="flex items-center space-x-1 shrink-0 ml-2 lg:ml-3">
                     {editingTaskId === task.id ? (
                       <>
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => handleSaveEdit(task.id)}
-                          className="text-green-500 hover:text-green-400 hover:bg-slate-700/50 h-8 w-8"
+                          className="text-green-500 hover:text-green-400 hover:bg-slate-700/50 h-7 w-7 lg:h-8 lg:w-8"
                           aria-label="Save task"
                         >
-                          <Save size={16} />
+                          <Save size={14} className="lg:hidden" />
+                          <Save size={16} className="hidden lg:block" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={handleCancelEdit}
-                          className="text-slate-400 hover:text-slate-300 hover:bg-slate-700/50 h-8 w-8"
+                          className="text-slate-400 hover:text-slate-300 hover:bg-slate-700/50 h-7 w-7 lg:h-8 lg:w-8"
                           aria-label="Cancel edit"
                         >
-                          <X size={16} />
+                          <X size={14} className="lg:hidden" />
+                          <X size={16} className="hidden lg:block" />
                         </Button>
                       </>
                     ) : (
@@ -613,19 +615,21 @@ export default function HomePage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleStartEdit(task)}
-                          className="text-slate-400 hover:text-sky-500 hover:bg-slate-700/50 h-8 w-8"
+                          className="text-slate-400 hover:text-sky-500 hover:bg-slate-700/50 h-7 w-7 lg:h-8 lg:w-8"
                           aria-label="Edit task"
                         >
-                          <Edit3 size={16} />
+                          <Edit3 size={14} className="lg:hidden" />
+                          <Edit3 size={16} className="hidden lg:block" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDeleteTask(task.id)}
-                          className="text-slate-400 hover:text-red-500 hover:bg-slate-700/50 h-8 w-8"
+                          className="text-slate-400 hover:text-red-500 hover:bg-slate-700/50 h-7 w-7 lg:h-8 lg:w-8"
                           aria-label="Delete task"
                         >
-                          <X size={16} />
+                          <X size={14} className="lg:hidden" />
+                          <X size={16} className="hidden lg:block" />
                         </Button>
                       </>
                     )}
@@ -633,15 +637,15 @@ export default function HomePage() {
                 </div>
 
                 {(task.dueDate || task.priority || !task.completed) && (
-                  <div className="mt-4 pt-4 border-t border-slate-700/50 flex items-center justify-between space-x-3 text-xs text-slate-400">
-                    <div className="flex items-center space-x-3">
+                  <div className="mt-3 lg:mt-4 pt-3 lg:pt-4 border-t border-slate-700/50 flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0 lg:space-x-3 text-xs text-slate-400">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 lg:space-x-3">
                       {/* Due Date Selector */}
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button
                             variant={"outline"}
                             size="sm"
-                            className={`justify-start text-left font-normal h-8 px-3 border-slate-700 hover:bg-slate-700/50
+                            className={`justify-start text-left font-normal h-8 px-3 border-slate-700 hover:bg-slate-700/50 w-full sm:w-auto
                             ${!task.dueDate && "text-slate-500"}
                             ${task.dueDate && new Date(task.dueDate) < new Date() && !task.completed ? "text-red-400 border-red-600" : ""}
                           `}
@@ -667,54 +671,56 @@ export default function HomePage() {
                       </Popover>
 
                       {/* Priority Selector */}
-                      <Select
-                        value={task.priority || ""}
-                        onValueChange={(value: "low" | "medium" | "high") =>
-                          handleSetPriority(task.id, value)
-                        }
-                      >
-                        <SelectTrigger className="h-8 px-3 text-xs border-slate-700 hover:bg-slate-700/50 w-[130px]">
-                          <SelectValue placeholder="Set priority">
-                            {task.priority ? (
+                      <div className="flex items-center space-x-2">
+                        <Select
+                          value={task.priority || ""}
+                          onValueChange={(value: "low" | "medium" | "high") =>
+                            handleSetPriority(task.id, value)
+                          }
+                        >
+                          <SelectTrigger className="h-8 px-3 text-xs border-slate-700 hover:bg-slate-700/50 w-full sm:w-[130px]">
+                            <SelectValue placeholder="Set priority">
+                              {task.priority ? (
+                                <div className="flex items-center space-x-2">
+                                  {getPriorityIcon(task.priority)}
+                                  <span className="capitalize">{task.priority}</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center space-x-2">
+                                  <Tag className="h-4 w-4 text-slate-500" />
+                                  <span>Set priority</span>
+                                </div>
+                              )}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-800 border-slate-700 text-slate-100">
+                            <SelectItem value="low" className="focus:bg-slate-700 py-2">
                               <div className="flex items-center space-x-2">
-                                {getPriorityIcon(task.priority)}
-                                <span className="capitalize">{task.priority}</span>
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                <span>Low</span>
                               </div>
-                            ) : (
+                            </SelectItem>
+                            <SelectItem value="medium" className="focus:bg-slate-700 py-2">
                               <div className="flex items-center space-x-2">
-                                <Tag className="h-4 w-4 text-slate-500" />
-                                <span>Set priority</span>
+                                <Info className="h-4 w-4 text-yellow-500" />
+                                <span>Medium</span>
                               </div>
-                            )}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="bg-slate-800 border-slate-700 text-slate-100">
-                          <SelectItem value="low" className="focus:bg-slate-700 py-2">
-                            <div className="flex items-center space-x-2">
-                              <CheckCircle className="h-4 w-4 text-green-500" />
-                              <span>Low</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="medium" className="focus:bg-slate-700 py-2">
-                            <div className="flex items-center space-x-2">
-                              <Info className="h-4 w-4 text-yellow-500" />
-                              <span>Medium</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="high" className="focus:bg-slate-700 py-2">
-                            <div className="flex items-center space-x-2">
-                              <AlertCircle className="h-4 w-4 text-red-500" />
-                              <span>High</span>
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      {/* Priority Clear Button */}
-                      {task.priority && (
-                         <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-red-500" onClick={() => handleSetPriority(task.id, undefined)}>
-                            <X size={12} />
-                         </Button>
-                      )}
+                            </SelectItem>
+                            <SelectItem value="high" className="focus:bg-slate-700 py-2">
+                              <div className="flex items-center space-x-2">
+                                <AlertCircle className="h-4 w-4 text-red-500" />
+                                <span>High</span>
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {/* Priority Clear Button */}
+                        {task.priority && (
+                           <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-red-500 shrink-0" onClick={() => handleSetPriority(task.id, undefined)}>
+                              <X size={12} />
+                           </Button>
+                        )}
+                      </div>
 
                       {/* Folder Selector for moving tasks between folders */}
                       <Select
@@ -723,7 +729,7 @@ export default function HomePage() {
                           handleMoveTaskToFolder(task.id, value === "no-folder" ? undefined : value)
                         }
                       >
-                        <SelectTrigger className="h-8 px-3 text-xs border-slate-700 hover:bg-slate-700/50 w-[140px]">
+                        <SelectTrigger className="h-8 px-3 text-xs border-slate-700 hover:bg-slate-700/50 w-full sm:w-[140px]">
                           <SelectValue placeholder="Move to folder">
                             {task.folderId ? (
                               <div className="flex items-center space-x-2">
@@ -766,7 +772,7 @@ export default function HomePage() {
                     </div>
                     {/* Completion Status */}
                     {task.completed && (
-                        <span className="text-green-500 text-xs font-medium">Completed</span>
+                        <span className="text-green-500 text-xs font-medium self-start lg:self-auto">Completed</span>
                     )}
                   </div>
                 )}
@@ -776,7 +782,7 @@ export default function HomePage() {
         </CardContent>
         {/* Footer showing task count */}
         {filteredTasks.length > 0 && (
-            <CardFooter className="border-t border-slate-700 pt-6 text-sm text-slate-500">
+            <CardFooter className="border-t border-slate-700 pt-4 lg:pt-6 text-sm text-slate-500">
                 <p>{filteredTasks.filter(t => !t.completed).length} tasks remaining</p>
             </CardFooter>
         )}
