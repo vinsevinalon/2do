@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
-import { X, CalendarIcon, Edit3, Save, Tag, AlertCircle, Info, CheckCircle, Folder, FolderPlus } from "lucide-react";
+import { X, CalendarIcon, Edit3, Save, Tag, AlertCircle, Info, CheckCircle, Folder, FolderPlus, Plus, ChevronDown, ChevronRight, Minus } from "lucide-react";
 import { format } from "date-fns";
 
 // Task interface - defines the structure of a task object
@@ -36,6 +36,8 @@ interface Task {
   dueDate?: Date; // Optional due date for the task
   priority?: "low" | "medium" | "high"; // Optional priority level
   folderId?: string; // Optional folder ID to organize tasks into folders
+  parentTaskId?: string; // Optional parent task ID - makes this task a subtask of another task
+  subtasks?: Task[]; // Optional array of subtasks - child tasks belonging to this task
 }
 
 // Folder interface - defines the structure of a folder object
@@ -65,6 +67,11 @@ export default function HomePage() {
   const [newFolderText, setNewFolderText] = useState(""); // Text input for creating new folders
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null); // Currently selected folder for filtering tasks
   const [showNewFolderInput, setShowNewFolderInput] = useState(false); // Toggle for showing/hiding new folder input
+
+  // Subtask management state
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set()); // Set of task IDs that are expanded to show subtasks
+  const [addingSubtaskTo, setAddingSubtaskTo] = useState<string | null>(null); // ID of task currently having a subtask added
+  const [newSubtaskText, setNewSubtaskText] = useState(""); // Text input for creating new subtasks
 
   // Effect hook to load tasks from localStorage on component mount
   useEffect(() => {
@@ -119,22 +126,32 @@ export default function HomePage() {
 
   /**
    * Handler for toggling task completion status
-   * Updates the completed property of the specified task
+   * Uses the subtask-aware completion handler for parent tasks
+   * Regular completion toggle for subtasks
    */
   const handleToggleComplete = (taskId: string) => {
-    setTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === taskId ? { ...task, completed: !task.completed } : task
-      )
-    );
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    
+    // If this is a parent task (has subtasks), use the subtask-aware handler
+    if (hasSubtasks(taskId)) {
+      handleToggleCompleteWithSubtasks(taskId);
+    } else {
+      // Regular completion toggle for subtasks or tasks without subtasks
+      setTasks((prevTasks) =>
+        prevTasks.map((t) =>
+          t.id === taskId ? { ...t, completed: !t.completed } : t
+        )
+      );
+    }
   };
 
   /**
    * Handler for deleting a task
-   * Removes the task from the tasks array using filter
+   * Uses the subtask-aware deletion handler that cascades to subtasks
    */
   const handleDeleteTask = (taskId: string) => {
-    setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
+    handleDeleteTaskWithSubtasks(taskId);
   };
 
   /**
@@ -282,6 +299,132 @@ export default function HomePage() {
   };
 
   /**
+   * SUBTASK MANAGEMENT FUNCTIONS
+   * These functions handle the creation, deletion, and management of subtasks
+   * Subtasks are stored as a flat array in the main tasks state, with parentTaskId linking them
+   */
+
+  /**
+   * Handler for adding a new subtask to a parent task
+   * Creates a subtask with parentTaskId set to the parent's ID
+   * Inherits folder from parent task for organization consistency
+   */
+  const handleAddSubtask = (parentTaskId: string) => {
+    if (newSubtaskText.trim() === "") return; // Prevent adding empty subtasks
+    
+    // Find the parent task to inherit properties
+    const parentTask = tasks.find(task => task.id === parentTaskId);
+    if (!parentTask) return;
+    
+    const newSubtask: Task = {
+      id: crypto.randomUUID(), // Generate unique identifier for subtask
+      text: newSubtaskText,
+      completed: false,
+      parentTaskId: parentTaskId, // Link to parent task
+      folderId: parentTask.folderId, // Inherit folder from parent
+    };
+    
+    setTasks((prevTasks) => [newSubtask, ...prevTasks]); // Add subtask to beginning of tasks array
+    setNewSubtaskText(""); // Clear subtask input field
+    setAddingSubtaskTo(null); // Exit subtask creation mode
+    
+    // Auto-expand the parent task to show the new subtask
+    setExpandedTasks(prev => new Set([...prev, parentTaskId]));
+  };
+
+  /**
+   * Handler for deleting a task (including cascade deletion of subtasks)
+   * When a parent task is deleted, all its subtasks are also deleted
+   * When a subtask is deleted, only that subtask is removed
+   */
+  const handleDeleteTaskWithSubtasks = (taskId: string) => {
+    setTasks((prevTasks) => {
+      // Get all subtask IDs that belong to this task (for cascade deletion)
+      const subtaskIds = prevTasks
+        .filter(task => task.parentTaskId === taskId)
+        .map(task => task.id);
+      
+      // Remove the task and all its subtasks
+      return prevTasks.filter(task => 
+        task.id !== taskId && // Remove the main task
+        !subtaskIds.includes(task.id) // Remove all subtasks
+      );
+    });
+  };
+
+  /**
+   * Handler for toggling task expansion (showing/hiding subtasks)
+   * Manages the expandedTasks Set to control UI visibility of subtasks
+   */
+  const handleToggleExpanded = (taskId: string) => {
+    setExpandedTasks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId); // Collapse if currently expanded
+      } else {
+        newSet.add(taskId); // Expand if currently collapsed
+      }
+      return newSet;
+    });
+  };
+
+  /**
+   * Handler for completing a parent task
+   * When a parent task is marked complete, all its subtasks are also marked complete
+   * When unmarking a parent task, subtasks remain in their current state for flexibility
+   */
+  const handleToggleCompleteWithSubtasks = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const newCompletedState = !task.completed;
+    
+    setTasks((prevTasks) =>
+      prevTasks.map((t) => {
+        // Update the main task
+        if (t.id === taskId) {
+          return { ...t, completed: newCompletedState };
+        }
+        // If marking parent as complete, mark all subtasks as complete too
+        if (newCompletedState && t.parentTaskId === taskId) {
+          return { ...t, completed: true };
+        }
+        return t;
+      })
+    );
+  };
+
+  /**
+   * Helper function to get all subtasks for a given parent task
+   * Returns an array of tasks that have parentTaskId matching the given taskId
+   */
+  const getSubtasks = (parentTaskId: string): Task[] => {
+    return tasks.filter(task => task.parentTaskId === parentTaskId);
+  };
+
+  /**
+   * Helper function to check if a task has any subtasks
+   * Returns true if there are tasks with parentTaskId matching the given taskId
+   */
+  const hasSubtasks = (taskId: string): boolean => {
+    return tasks.some(task => task.parentTaskId === taskId);
+  };
+
+  /**
+   * Helper function to calculate subtask completion statistics
+   * Returns an object with total subtasks and completed count for progress indication
+   */
+  const getSubtaskStats = (parentTaskId: string) => {
+    const subtasks = getSubtasks(parentTaskId);
+    const completedCount = subtasks.filter(task => task.completed).length;
+    return {
+      total: subtasks.length,
+      completed: completedCount,
+      percentage: subtasks.length > 0 ? Math.round((completedCount / subtasks.length) * 100) : 0
+    };
+  };
+
+  /**
    * Helper function to get the appropriate icon for task priority levels
    * Returns different colored icons based on priority (high=red, medium=yellow, low=green)
    */
@@ -302,17 +445,394 @@ export default function HomePage() {
    * Filter tasks based on selected folder
    * If a folder is selected, show only tasks in that folder
    * If no folder is selected, show only tasks that don't belong to any folder
+   * IMPORTANT: Only show parent tasks (tasks without parentTaskId) in the main list
+   * Subtasks are displayed nested under their parent tasks
    */
   const filteredTasks = selectedFolder
-    ? tasks.filter(task => task.folderId === selectedFolder)
-    : tasks.filter(task => !task.folderId); // Show tasks without folders when no folder is selected
+    ? tasks.filter(task => task.folderId === selectedFolder && !task.parentTaskId) // Only parent tasks in selected folder
+    : tasks.filter(task => !task.folderId && !task.parentTaskId); // Only parent tasks without folders
 
   /**
    * Helper function to count incomplete tasks in a specific folder
    * Used for displaying task counts in folder list
+   * Only counts parent tasks (excludes subtasks) to avoid double counting
    */
   const getTaskCountForFolder = (folderId?: string) => {
-    return tasks.filter(task => task.folderId === folderId && !task.completed).length;
+    return tasks.filter(task => 
+      task.folderId === folderId && 
+      !task.completed && 
+      !task.parentTaskId // Exclude subtasks from count
+    ).length;
+  };
+
+  /**
+   * TaskItem Component - Renders a single task with subtask support
+   * This component handles both parent tasks and subtasks with different styling
+   * Includes collapse/expand functionality for parent tasks with subtasks
+   */
+  const TaskItem = ({ task, isSubtask = false, indentLevel = 0 }: { 
+    task: Task; 
+    isSubtask?: boolean; 
+    indentLevel?: number; 
+  }) => {
+    const subtasks = getSubtasks(task.id);
+    const isExpanded = expandedTasks.has(task.id);
+    const stats = getSubtaskStats(task.id);
+    
+    return (
+      <>
+        <li
+          className={`flex flex-col transition-all duration-300 ease-in-out shadow-md hover:shadow-lg
+            ${isSubtask 
+              ? "bg-slate-800/40 border border-slate-700/50 rounded-md p-3 ml-4 lg:ml-8" 
+              : `p-4 lg:p-5 rounded-lg ${
+                  task.completed
+                    ? "bg-slate-800/60 border border-slate-700"
+                    : "bg-slate-800 border border-slate-700 hover:border-sky-600"
+                }`
+            }
+          `}
+          style={{ marginLeft: isSubtask ? `${indentLevel * 16}px` : '0px' }}
+        >
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center space-x-3 lg:space-x-4 flex-1 min-w-0">
+              {/* Expand/Collapse button for parent tasks with subtasks */}
+              {!isSubtask && subtasks.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleToggleExpanded(task.id)}
+                  className="h-6 w-6 text-slate-400 hover:text-sky-500 shrink-0"
+                  aria-label={isExpanded ? "Collapse subtasks" : "Expand subtasks"}
+                >
+                  {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                </Button>
+              )}
+              
+              {/* Spacer for tasks without subtasks to align with expandable tasks */}
+              {!isSubtask && subtasks.length === 0 && (
+                <div className="w-6 h-6 shrink-0"></div>
+              )}
+
+              <Checkbox
+                id={`task-${task.id}`}
+                checked={task.completed}
+                onCheckedChange={() => handleToggleComplete(task.id)}
+                className="border-slate-600 data-[state=checked]:bg-sky-600 data-[state=checked]:border-sky-600 shrink-0"
+              />
+              
+              {editingTaskId === task.id ? (
+                <Input
+                  type="text"
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") handleSaveEdit(task.id);
+                    if (e.key === "Escape") handleCancelEdit();
+                  }}
+                  className="flex-1 bg-slate-700 border-slate-600 text-slate-100 h-8 lg:h-9 text-sm px-3"
+                  autoFocus
+                />
+              ) : (
+                <div className="flex-1 min-w-0">
+                  <label
+                    htmlFor={`task-${task.id}`}
+                    className={`cursor-pointer text-sm lg:text-base block py-1 ${
+                      task.completed
+                        ? "line-through text-slate-500"
+                        : "text-slate-100"
+                    }`}
+                    onDoubleClick={() => handleStartEdit(task)}
+                    title={task.text}
+                  >
+                    {task.text}
+                  </label>
+                  
+                  {/* Subtask progress indicator for parent tasks */}
+                  {!isSubtask && subtasks.length > 0 && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex-1 bg-slate-700 rounded-full h-1.5">
+                        <div 
+                          className="bg-sky-500 h-1.5 rounded-full transition-all duration-300"
+                          style={{ width: `${stats.percentage}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-xs text-slate-400">
+                        {stats.completed}/{stats.total}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            <div className="flex items-center space-x-1 shrink-0 ml-2 lg:ml-3">
+              {/* Add subtask button for parent tasks */}
+              {!isSubtask && addingSubtaskTo !== task.id && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setAddingSubtaskTo(task.id)}
+                  className="text-slate-400 hover:text-green-500 hover:bg-slate-700/50 h-7 w-7 lg:h-8 lg:w-8"
+                  aria-label="Add subtask"
+                >
+                  <Plus size={14} className="lg:hidden" />
+                  <Plus size={16} className="hidden lg:block" />
+                </Button>
+              )}
+              
+              {editingTaskId === task.id ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleSaveEdit(task.id)}
+                    className="text-green-500 hover:text-green-400 hover:bg-slate-700/50 h-7 w-7 lg:h-8 lg:w-8"
+                    aria-label="Save task"
+                  >
+                    <Save size={14} className="lg:hidden" />
+                    <Save size={16} className="hidden lg:block" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleCancelEdit}
+                    className="text-slate-400 hover:text-slate-300 hover:bg-slate-700/50 h-7 w-7 lg:h-8 lg:w-8"
+                    aria-label="Cancel edit"
+                  >
+                    <X size={14} className="lg:hidden" />
+                    <X size={16} className="hidden lg:block" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleStartEdit(task)}
+                    className="text-slate-400 hover:text-sky-500 hover:bg-slate-700/50 h-7 w-7 lg:h-8 lg:w-8"
+                    aria-label="Edit task"
+                  >
+                    <Edit3 size={14} className="lg:hidden" />
+                    <Edit3 size={16} className="hidden lg:block" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDeleteTask(task.id)}
+                    className="text-slate-400 hover:text-red-500 hover:bg-slate-700/50 h-7 w-7 lg:h-8 lg:w-8"
+                    aria-label="Delete task"
+                  >
+                    <X size={14} className="lg:hidden" />
+                    <X size={16} className="hidden lg:block" />
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Task metadata (dates, priority, folder) - only show for parent tasks or if subtask has these properties */}
+          {(!isSubtask || task.dueDate || task.priority) && (task.dueDate || task.priority || !task.completed) && (
+            <div className="mt-3 lg:mt-4 pt-3 lg:pt-4 border-t border-slate-700/50 flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0 lg:space-x-3 text-xs text-slate-400">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 lg:space-x-3">
+                {/* Due Date Selector */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      size="sm"
+                      className={`justify-start text-left font-normal h-8 px-3 border-slate-700 hover:bg-slate-700/50 w-full sm:w-auto
+                      ${!task.dueDate && "text-slate-500"}
+                      ${task.dueDate && new Date(task.dueDate) < new Date() && !task.completed ? "text-red-400 border-red-600" : ""}
+                    `}
+                    >
+                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                      {task.dueDate ? (
+                        format(task.dueDate, "MMM d, yyyy")
+                      ) : (
+                        <span>Set date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-700" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={task.dueDate}
+                      onSelect={(date: Date | undefined) => handleSetDueDate(task.id, date)}
+                      initialFocus
+                      className="text-slate-100"
+                    />
+                     <Button variant="ghost" size="sm" className="w-full justify-start text-slate-400 hover:text-red-500 p-3" onClick={() => handleSetDueDate(task.id, undefined)}>Clear Date</Button>
+                  </PopoverContent>
+                </Popover>
+
+                {/* Priority Selector */}
+                <div className="flex items-center space-x-2">
+                  <Select
+                    value={task.priority || ""}
+                    onValueChange={(value: "low" | "medium" | "high") =>
+                      handleSetPriority(task.id, value)
+                    }
+                  >
+                    <SelectTrigger className="h-8 px-3 text-xs border-slate-700 hover:bg-slate-700/50 w-full sm:w-[130px]">
+                      <SelectValue placeholder="Set priority">
+                        {task.priority ? (
+                          <div className="flex items-center space-x-2">
+                            {getPriorityIcon(task.priority)}
+                            <span className="capitalize">{task.priority}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2">
+                            <Tag className="h-4 w-4 text-slate-500" />
+                            <span>Set priority</span>
+                          </div>
+                        )}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-slate-700 text-slate-100">
+                      <SelectItem value="low" className="focus:bg-slate-700 py-2">
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <span>Low</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="medium" className="focus:bg-slate-700 py-2">
+                        <div className="flex items-center space-x-2">
+                          <Info className="h-4 w-4 text-yellow-500" />
+                          <span>Medium</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="high" className="focus:bg-slate-700 py-2">
+                        <div className="flex items-center space-x-2">
+                          <AlertCircle className="h-4 w-4 text-red-500" />
+                          <span>High</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {/* Priority Clear Button */}
+                  {task.priority && (
+                     <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-red-500 shrink-0" onClick={() => handleSetPriority(task.id, undefined)}>
+                        <X size={12} />
+                     </Button>
+                  )}
+                </div>
+
+                {/* Folder Selector for moving tasks between folders - only for parent tasks */}
+                {!isSubtask && (
+                  <Select
+                    value={task.folderId || "no-folder"}
+                    onValueChange={(value: string) =>
+                      handleMoveTaskToFolder(task.id, value === "no-folder" ? undefined : value)
+                    }
+                  >
+                    <SelectTrigger className="h-8 px-3 text-xs border-slate-700 hover:bg-slate-700/50 w-full sm:w-[140px]">
+                      <SelectValue placeholder="Move to folder">
+                        {task.folderId ? (
+                          <div className="flex items-center space-x-2">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: folders.find(f => f.id === task.folderId)?.color }}
+                            ></div>
+                            <span className="truncate">
+                              {folders.find(f => f.id === task.folderId)?.name || "Unknown"}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2">
+                            <Folder className="h-4 w-4 text-slate-500" />
+                            <span>No folder</span>
+                          </div>
+                        )}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-slate-700 text-slate-100">
+                      <SelectItem value="no-folder" className="focus:bg-slate-700 py-2">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-3 h-3 rounded-full bg-slate-500"></div>
+                          <span>No folder</span>
+                        </div>
+                      </SelectItem>
+                      {folders.map((folder) => (
+                        <SelectItem key={folder.id} value={folder.id} className="focus:bg-slate-700 py-2">
+                          <div className="flex items-center space-x-2">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: folder.color }}
+                            ></div>
+                            <span className="truncate">{folder.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              {/* Completion Status */}
+              {task.completed && (
+                  <span className="text-green-500 text-xs font-medium self-start lg:self-auto">Completed</span>
+              )}
+            </div>
+          )}
+
+          {/* Subtask input area */}
+          {!isSubtask && addingSubtaskTo === task.id && (
+            <div className="mt-3 pt-3 border-t border-slate-700/50">
+              <div className="flex items-center space-x-2 ml-6 lg:ml-10">
+                <Input
+                  type="text"
+                  placeholder="Add a subtask..."
+                  value={newSubtaskText}
+                  onChange={(e) => setNewSubtaskText(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      handleAddSubtask(task.id);
+                    }
+                    if (e.key === "Escape") {
+                      setAddingSubtaskTo(null);
+                      setNewSubtaskText("");
+                    }
+                  }}
+                  className="flex-1 bg-slate-700 border-slate-600 text-slate-100 h-8 text-sm px-3"
+                  autoFocus
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleAddSubtask(task.id)}
+                  className="text-green-500 hover:text-green-400 hover:bg-slate-700/50 h-8 w-8"
+                  aria-label="Add subtask"
+                >
+                  <Save size={14} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setAddingSubtaskTo(null);
+                    setNewSubtaskText("");
+                  }}
+                  className="text-slate-400 hover:text-slate-300 hover:bg-slate-700/50 h-8 w-8"
+                  aria-label="Cancel add subtask"
+                >
+                  <Minus size={14} />
+                </Button>
+              </div>
+            </div>
+          )}
+        </li>
+
+        {/* Render subtasks if parent task is expanded */}
+        {!isSubtask && isExpanded && subtasks.map((subtask) => (
+          <TaskItem 
+            key={subtask.id} 
+            task={subtask} 
+            isSubtask={true} 
+            indentLevel={1}
+          />
+        ))}
+      </>
+    );
   };
 
   return (
@@ -537,248 +1057,12 @@ export default function HomePage() {
               </p>
             )}
 
-            {/* Tasks List */}
+            {/* Tasks List - Now using TaskItem component with subtask support */}
             <ul className="space-y-3 lg:space-y-5">
               {filteredTasks.map((task) => (
-              <li
-                key={task.id}
-                className={`flex flex-col p-4 lg:p-5 rounded-lg transition-all duration-300 ease-in-out shadow-md hover:shadow-lg
-                ${
-                  task.completed
-                    ? "bg-slate-800/60 border border-slate-700"
-                    : "bg-slate-800 border border-slate-700 hover:border-sky-600"
-                }
-              `}
-              >
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center space-x-3 lg:space-x-4 flex-1 min-w-0">
-                    <Checkbox
-                      id={`task-${task.id}`}
-                      checked={task.completed}
-                      onCheckedChange={() => handleToggleComplete(task.id)}
-                      className="border-slate-600 data-[state=checked]:bg-sky-600 data-[state=checked]:border-sky-600 shrink-0"
-                    />
-                    {editingTaskId === task.id ? (
-                      <Input
-                        type="text"
-                        value={editText}
-                        onChange={(e) => setEditText(e.target.value)}
-                        onKeyPress={(e) => {
-                          if (e.key === "Enter") handleSaveEdit(task.id);
-                          if (e.key === "Escape") handleCancelEdit();
-                        }}
-                        className="flex-1 bg-slate-700 border-slate-600 text-slate-100 h-8 lg:h-9 text-sm px-3"
-                        autoFocus
-                      />
-                    ) : (
-                      <label
-                        htmlFor={`task-${task.id}`}
-                        className={`cursor-pointer text-sm lg:text-base truncate py-1 ${
-                          task.completed
-                            ? "line-through text-slate-500"
-                            : "text-slate-100"
-                        }`}
-                        onDoubleClick={() => handleStartEdit(task)}
-                        title={task.text}
-                      >
-                        {task.text}
-                      </label>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-1 shrink-0 ml-2 lg:ml-3">
-                    {editingTaskId === task.id ? (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleSaveEdit(task.id)}
-                          className="text-green-500 hover:text-green-400 hover:bg-slate-700/50 h-7 w-7 lg:h-8 lg:w-8"
-                          aria-label="Save task"
-                        >
-                          <Save size={14} className="lg:hidden" />
-                          <Save size={16} className="hidden lg:block" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={handleCancelEdit}
-                          className="text-slate-400 hover:text-slate-300 hover:bg-slate-700/50 h-7 w-7 lg:h-8 lg:w-8"
-                          aria-label="Cancel edit"
-                        >
-                          <X size={14} className="lg:hidden" />
-                          <X size={16} className="hidden lg:block" />
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleStartEdit(task)}
-                          className="text-slate-400 hover:text-sky-500 hover:bg-slate-700/50 h-7 w-7 lg:h-8 lg:w-8"
-                          aria-label="Edit task"
-                        >
-                          <Edit3 size={14} className="lg:hidden" />
-                          <Edit3 size={16} className="hidden lg:block" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteTask(task.id)}
-                          className="text-slate-400 hover:text-red-500 hover:bg-slate-700/50 h-7 w-7 lg:h-8 lg:w-8"
-                          aria-label="Delete task"
-                        >
-                          <X size={14} className="lg:hidden" />
-                          <X size={16} className="hidden lg:block" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {(task.dueDate || task.priority || !task.completed) && (
-                  <div className="mt-3 lg:mt-4 pt-3 lg:pt-4 border-t border-slate-700/50 flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0 lg:space-x-3 text-xs text-slate-400">
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 lg:space-x-3">
-                      {/* Due Date Selector */}
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant={"outline"}
-                            size="sm"
-                            className={`justify-start text-left font-normal h-8 px-3 border-slate-700 hover:bg-slate-700/50 w-full sm:w-auto
-                            ${!task.dueDate && "text-slate-500"}
-                            ${task.dueDate && new Date(task.dueDate) < new Date() && !task.completed ? "text-red-400 border-red-600" : ""}
-                          `}
-                          >
-                            <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                            {task.dueDate ? (
-                              format(task.dueDate, "MMM d, yyyy")
-                            ) : (
-                              <span>Set date</span>
-                            )}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-700" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={task.dueDate}
-                            onSelect={(date: Date | undefined) => handleSetDueDate(task.id, date)}
-                            initialFocus
-                            className="text-slate-100"
-                          />
-                           <Button variant="ghost" size="sm" className="w-full justify-start text-slate-400 hover:text-red-500 p-3" onClick={() => handleSetDueDate(task.id, undefined)}>Clear Date</Button>
-                        </PopoverContent>
-                      </Popover>
-
-                      {/* Priority Selector */}
-                      <div className="flex items-center space-x-2">
-                        <Select
-                          value={task.priority || ""}
-                          onValueChange={(value: "low" | "medium" | "high") =>
-                            handleSetPriority(task.id, value)
-                          }
-                        >
-                          <SelectTrigger className="h-8 px-3 text-xs border-slate-700 hover:bg-slate-700/50 w-full sm:w-[130px]">
-                            <SelectValue placeholder="Set priority">
-                              {task.priority ? (
-                                <div className="flex items-center space-x-2">
-                                  {getPriorityIcon(task.priority)}
-                                  <span className="capitalize">{task.priority}</span>
-                                </div>
-                              ) : (
-                                <div className="flex items-center space-x-2">
-                                  <Tag className="h-4 w-4 text-slate-500" />
-                                  <span>Set priority</span>
-                                </div>
-                              )}
-                            </SelectValue>
-                          </SelectTrigger>
-                          <SelectContent className="bg-slate-800 border-slate-700 text-slate-100">
-                            <SelectItem value="low" className="focus:bg-slate-700 py-2">
-                              <div className="flex items-center space-x-2">
-                                <CheckCircle className="h-4 w-4 text-green-500" />
-                                <span>Low</span>
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="medium" className="focus:bg-slate-700 py-2">
-                              <div className="flex items-center space-x-2">
-                                <Info className="h-4 w-4 text-yellow-500" />
-                                <span>Medium</span>
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="high" className="focus:bg-slate-700 py-2">
-                              <div className="flex items-center space-x-2">
-                                <AlertCircle className="h-4 w-4 text-red-500" />
-                                <span>High</span>
-                              </div>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {/* Priority Clear Button */}
-                        {task.priority && (
-                           <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-red-500 shrink-0" onClick={() => handleSetPriority(task.id, undefined)}>
-                              <X size={12} />
-                           </Button>
-                        )}
-                      </div>
-
-                      {/* Folder Selector for moving tasks between folders */}
-                      <Select
-                        value={task.folderId || "no-folder"}
-                        onValueChange={(value: string) =>
-                          handleMoveTaskToFolder(task.id, value === "no-folder" ? undefined : value)
-                        }
-                      >
-                        <SelectTrigger className="h-8 px-3 text-xs border-slate-700 hover:bg-slate-700/50 w-full sm:w-[140px]">
-                          <SelectValue placeholder="Move to folder">
-                            {task.folderId ? (
-                              <div className="flex items-center space-x-2">
-                                <div
-                                  className="w-3 h-3 rounded-full"
-                                  style={{ backgroundColor: folders.find(f => f.id === task.folderId)?.color }}
-                                ></div>
-                                <span className="truncate">
-                                  {folders.find(f => f.id === task.folderId)?.name || "Unknown"}
-                                </span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center space-x-2">
-                                <Folder className="h-4 w-4 text-slate-500" />
-                                <span>No folder</span>
-                              </div>
-                            )}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="bg-slate-800 border-slate-700 text-slate-100">
-                          <SelectItem value="no-folder" className="focus:bg-slate-700 py-2">
-                            <div className="flex items-center space-x-2">
-                              <div className="w-3 h-3 rounded-full bg-slate-500"></div>
-                              <span>No folder</span>
-                            </div>
-                          </SelectItem>
-                          {folders.map((folder) => (
-                            <SelectItem key={folder.id} value={folder.id} className="focus:bg-slate-700 py-2">
-                              <div className="flex items-center space-x-2">
-                                <div
-                                  className="w-3 h-3 rounded-full"
-                                  style={{ backgroundColor: folder.color }}
-                                ></div>
-                                <span className="truncate">{folder.name}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {/* Completion Status */}
-                    {task.completed && (
-                        <span className="text-green-500 text-xs font-medium self-start lg:self-auto">Completed</span>
-                    )}
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
+                <TaskItem key={task.id} task={task} />
+              ))}
+            </ul>
         </CardContent>
         {/* Footer showing task count */}
         {filteredTasks.length > 0 && (
