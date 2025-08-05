@@ -631,6 +631,52 @@ export default function HomePage() {
             </div>
           </div>
 
+          {/* Subtask input area - moved to appear right after main task content */}
+          {!isSubtask && addingSubtaskTo === task.id && (
+            <div className="mt-3 pt-3 border-t border-slate-700/50">
+              <div className="flex items-center space-x-2 ml-6 lg:ml-10">
+                <Input
+                  type="text"
+                  placeholder="Add a subtask..."
+                  value={newSubtaskText}
+                  onChange={(e) => setNewSubtaskText(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      handleAddSubtask(task.id);
+                    }
+                    if (e.key === "Escape") {
+                      setAddingSubtaskTo(null);
+                      setNewSubtaskText("");
+                    }
+                  }}
+                  className="flex-1 bg-slate-700 border-slate-600 text-slate-100 h-8 text-sm px-3"
+                  autoFocus
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleAddSubtask(task.id)}
+                  className="text-green-500 hover:text-green-400 hover:bg-slate-700/50 h-8 w-8"
+                  aria-label="Add subtask"
+                >
+                  <Save size={14} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setAddingSubtaskTo(null);
+                    setNewSubtaskText("");
+                  }}
+                  className="text-slate-400 hover:text-slate-300 hover:bg-slate-700/50 h-8 w-8"
+                  aria-label="Cancel add subtask"
+                >
+                  <Minus size={14} />
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Task metadata (dates, priority, folder) - only show for parent tasks or if subtask has these properties */}
           {(!isSubtask || task.dueDate || task.priority) && (task.dueDate || task.priority || !task.completed) && (
             <div className="mt-3 lg:mt-4 pt-3 lg:pt-4 border-t border-slate-700/50 flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0 lg:space-x-3 text-xs text-slate-400">
@@ -772,52 +818,6 @@ export default function HomePage() {
               {task.completed && (
                   <span className="text-green-500 text-xs font-medium self-start lg:self-auto">Completed</span>
               )}
-            </div>
-          )}
-
-          {/* Subtask input area */}
-          {!isSubtask && addingSubtaskTo === task.id && (
-            <div className="mt-3 pt-3 border-t border-slate-700/50">
-              <div className="flex items-center space-x-2 ml-6 lg:ml-10">
-                <Input
-                  type="text"
-                  placeholder="Add a subtask..."
-                  value={newSubtaskText}
-                  onChange={(e) => setNewSubtaskText(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      handleAddSubtask(task.id);
-                    }
-                    if (e.key === "Escape") {
-                      setAddingSubtaskTo(null);
-                      setNewSubtaskText("");
-                    }
-                  }}
-                  className="flex-1 bg-slate-700 border-slate-600 text-slate-100 h-8 text-sm px-3"
-                  autoFocus
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleAddSubtask(task.id)}
-                  className="text-green-500 hover:text-green-400 hover:bg-slate-700/50 h-8 w-8"
-                  aria-label="Add subtask"
-                >
-                  <Save size={14} />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    setAddingSubtaskTo(null);
-                    setNewSubtaskText("");
-                  }}
-                  className="text-slate-400 hover:text-slate-300 hover:bg-slate-700/50 h-8 w-8"
-                  aria-label="Cancel add subtask"
-                >
-                  <Minus size={14} />
-                </Button>
-              </div>
             </div>
           )}
         </li>
