@@ -49,7 +49,6 @@ function TaskAppContent() {
     setNewTaskText("");
   };
 
-
   // Folder handlers
   const handleAddFolder = () => {
     if (newFolderText.trim() === "") return;
@@ -58,17 +57,14 @@ function TaskAppContent() {
     setShowNewFolderInput(false);
   };
 
-
-
   // Computed values
   const filteredTasks = getFilteredTasks(selectedFolder);
 
   return (
     <main className="flex min-h-screen flex-col items-center p-3 sm:p-6 md:p-10 lg:p-14 xl:p-28 bg-gradient-to-br from-slate-950 to-slate-800 text-slate-50">
-      {/* Main container with responsive layout - stacked on mobile, side-by-side on desktop */}
       <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-4 lg:gap-6">
         
-        {/* Folder Sidebar - full width on mobile, fixed width on desktop */}
+        {/* Folder Sidebar */}
         <Card className="w-full lg:w-80 bg-slate-900/80 border-slate-700 shadow-2xl backdrop-blur-sm h-fit order-2 lg:order-1">
           <CardHeader className="border-b border-slate-700 pb-3 lg:pb-4">
             <CardTitle className="text-lg lg:text-xl font-bold text-slate-100 flex items-center gap-2">
@@ -77,7 +73,7 @@ function TaskAppContent() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 lg:p-4">
-            {/* All Tasks (no folder) option */}
+            {/* All Tasks option */}
             <div
               className={`flex items-center justify-between p-2 lg:p-3 rounded-lg cursor-pointer transition-all mb-2 ${
                 selectedFolder === null
@@ -100,7 +96,6 @@ function TaskAppContent() {
               {folders.map((folder) => (
                 <div key={folder.id} className="group">
                   {editingFolderId === folder.id ? (
-                    /* Folder Edit Mode */
                     <div className="flex items-center gap-2 p-2 bg-slate-800 rounded-lg">
                       <div
                         className="w-3 h-3 rounded-full flex-shrink-0"
@@ -135,7 +130,6 @@ function TaskAppContent() {
                       </Button>
                     </div>
                   ) : (
-                    /* Folder Display Mode */
                     <div
                       className={`flex items-center justify-between p-2 lg:p-3 rounded-lg cursor-pointer transition-all ${
                         selectedFolder === folder.id
@@ -239,7 +233,7 @@ function TaskAppContent() {
           </CardContent>
         </Card>
 
-        {/* Main Tasks Panel - full width on mobile, flexible on desktop */}
+        {/* Main Tasks Panel */}
         <Card className="flex-1 bg-slate-900/80 border-slate-700 shadow-2xl backdrop-blur-sm order-1 lg:order-2">
           <CardHeader className="border-b border-slate-700 pb-4 lg:pb-6">
             <CardTitle className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-blue-600 mb-2">
@@ -292,7 +286,7 @@ function TaskAppContent() {
               ))}
             </ul>
         </CardContent>
-        {/* Footer showing task count */}
+        
         {filteredTasks.length > 0 && (
             <CardFooter className="border-t border-slate-700 pt-4 lg:pt-6 text-sm text-slate-500">
                 <p>{filteredTasks.filter(t => !t.completed).length} tasks remaining</p>
